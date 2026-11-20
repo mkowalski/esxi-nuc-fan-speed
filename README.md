@@ -67,3 +67,9 @@ timestamps beyond 2 seconds. `SSH_ORIGINAL_COMMAND` is not authentication.
   **Never force unload.** Failed cleanup can retain a pin or block teardown;
   stop and investigate rather than repeatedly retrying. This is containment,
   not automatic recovery. No boot-persistence or reboot validation is provided.
+
+## License
+
+BSD 2-Clause; see [LICENSE](LICENSE). It covers the native module, the scripts
+and the tests. The built module declares `license=BSD` to the ESXi loader.
+VMware ESXi itself is not part of this repository and is licensed separately.
