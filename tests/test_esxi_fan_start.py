@@ -8,6 +8,16 @@ import tempfile
 import json
 
 ROOT=Path(__file__).resolve().parents[1]
+QUALIFIED_KERNEL_SHA='3c55688c314300ae90849b34959ad3dd5d66d2d5b14d3349a1204e470df9ac52'
+QUALIFIED_ARTIFACT_SHA='6efcb75285b71135fadd0c26fa50fdeb2d81a097ebb3dd201d0b6e7180517fde'
+
+
+def qualified_args(version):
+    return {'version':version,'kernel_sha':QUALIFIED_KERNEL_SHA,
+            'artifact_sha':QUALIFIED_ARTIFACT_SHA,
+            'prevent':'preventFreePageMapping Bool FALSE FALSE FALSE description\n',
+            'execution':'execInstalledOnly Bool FALSE FALSE FALSE description\n',
+            'policy':1,'modules':set()}
 
 class StartTests(unittest.TestCase):
     @classmethod
@@ -18,12 +28,34 @@ class StartTests(unittest.TestCase):
     def test_runtime_boot_control_and_exact_artifact_preflight(self):
         false='preventFreePageMapping Bool FALSE FALSE FALSE description\n'
         kernel='execInstalledOnly Bool FALSE FALSE FALSE description\n'
-        self.start.validate_preflight('VMware ESXi 8.0.3 build-25429389',self.start.KERNEL_SHA,self.start.ARTIFACT_SHA,false,kernel,1,set())
+        self.start.validate_preflight(**qualified_args('VMware ESXi 8.0.3 build-25429389'))
         cases=[('version','other'),('kernel_sha','0'*64),('artifact_sha','0'*64),('prevent',false.replace('FALSE FALSE','FALSE TRUE')),('execution',kernel.replace('FALSE FALSE','FALSE TRUE')),('policy',0),('modules',{'nuc_fan_monitor'})]
-        for key,value in cases:
-            args={'version':'VMware ESXi 8.0.3 build-25429389','kernel_sha':self.start.KERNEL_SHA,'artifact_sha':self.start.ARTIFACT_SHA,'prevent':false,'execution':kernel,'policy':1,'modules':set()}
-            args[key]=value
-            with self.subTest(key=key),self.assertRaises(ValueError):self.start.validate_preflight(**args)
+        for version in ('VMware ESXi 8.0.3 build-25429389','VMware ESXi 8.0.3 build-25595708'):
+            for key,value in cases:
+                args=qualified_args(version)
+                args[key]=value
+                with self.subTest(version=version,key=key),self.assertRaises(ValueError):self.start.validate_preflight(**args)
+
+    def test_u3j_and_u3k_accept_the_measured_kernel_and_object(self):
+        # Rejecting U3k despite identical qualified binaries prevents RPM startup.
+        for build in ('25429389','25595708'):
+            version=f'VMware ESXi 8.0.3 build-{build}\nVMware ESXi 8.0 Update 3\n'
+            with self.subTest(build=build):
+                try:
+                    self.start.validate_preflight(**qualified_args(version))
+                except ValueError as error:
+                    self.fail(f'Qualified build {build} rejected: {error}')
+
+    def test_version_line_must_match_a_qualified_release_exactly(self):
+        # Substring matching can accidentally admit an unqualified release line.
+        versions=('', 'VMware ESXi 8.0.3 build-254293890',
+                  'VMware ESXi 8.0.3 build-255957080',
+                  'prefix VMware ESXi 8.0.3 build-25429389',
+                  'VMware ESXi 8.0.3 build-25926933',
+                  'VMware ESXi 9.0.0 build-25595708')
+        for version in versions:
+            with self.subTest(version=version),self.assertRaises(ValueError):
+                self.start.validate_preflight(**qualified_args(version))
 
     def test_loaded_module_is_not_operational_without_a_new_valid_sample(self):
         clock=[0.0];reads=[0]

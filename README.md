@@ -6,7 +6,14 @@ No VMware DDK or additional Python packages are required.
 
 ## Supported target
 
-**NUC11TNHi5 / i5-1135G7**, BIOS `TNTGL357.0080`, **ESXi 8.0.3 U3j build 25429389**.
+**NUC11TNHi5 / i5-1135G7**, BIOS `TNTGL357.0080`, **ESXi 8.0.3 U3j build 25429389
+or U3k build 25595708**.
+
+Both releases share the qualified kernel SHA-256
+`3c55688c314300ae90849b34959ad3dd5d66d2d5b14d3349a1204e470df9ac52`.
+The loader requires an exact qualified release line and retains its binary and
+policy checks.
+
 This experimental module uses private, build-specific interfaces. Other hardware
 or kernel builds require fresh validation; successful compilation is not enough.
 

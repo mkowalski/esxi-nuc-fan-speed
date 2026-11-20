@@ -18,6 +18,11 @@ NAME = 'nuc_fan_monitor'
 CLI = '/bin/esxcli'
 LOADER = '/bin/vmkload_mod'
 OPTION = '/User/ExecInstalledOnly'
+# U3j and U3k share this exact qualified kernel image (verified 2026-11-19).
+QUALIFIED_VERSIONS = frozenset({
+    'VMware ESXi 8.0.3 build-25429389',
+    'VMware ESXi 8.0.3 build-25595708',
+})
 KERNEL_SHA = '3c55688c314300ae90849b34959ad3dd5d66d2d5b14d3349a1204e470df9ac52'
 ARTIFACT_SHA = '6efcb75285b71135fadd0c26fa50fdeb2d81a097ebb3dd201d0b6e7180517fde'
 GUARD_SHA = '00ad86b10779b694dba68966bcda0aa2d64e9324ab42fe84723e9fbcd8ff0b70'
@@ -59,7 +64,9 @@ def boot_false(text: str, key: str) -> bool:
 
 def validate_preflight(version: str, kernel_sha: str, artifact_sha: str,
                        prevent: str, execution: str, policy: int, modules: set) -> None:
-    if not ('8.0.3' in version and '25429389' in version and kernel_sha == KERNEL_SHA and
+    lines = version.splitlines()
+    version_line = lines[0] if lines else ''
+    if not (version_line in QUALIFIED_VERSIONS and kernel_sha == KERNEL_SHA and
             artifact_sha == ARTIFACT_SHA and policy == 1 and NAME not in modules and
             boot_false(prevent, 'preventFreePageMapping') and boot_false(execution, 'execInstalledOnly')):
         raise ValueError('Unsupported target, policy, artifact or existing module; no change permitted')
